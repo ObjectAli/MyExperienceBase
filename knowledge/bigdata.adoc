@@ -1,0 +1,4 @@
+- AI (artificial intelligence) — это симуляция искусственного интеллекта.
+- ML (machine learning) - машинное обучение (подмножество AI).
+- DL (deep learning) - глубокое обучение (подмножество ML).
+- Data Science - наука о данных = AI + ML + DL.
