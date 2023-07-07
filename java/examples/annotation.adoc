@@ -1,0 +1,48 @@
+= Пример создания аннотации на примере аналог @Transactional
+
+.1 Создать саму аннотацию (Пример @TransactionalPoint)
+
+[source, java]
+----
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface TransactionalPoint {
+
+    boolean readOnly() default false;
+}
+----
+
+.2 Создать класс-обработчик
+
+[source, java]
+----
+@Component
+@Aspect
+public class TransactionalPointAspect {
+
+    private final TransactionTemplate transactionTemplate;
+
+    public TransactionalPointAspect(PlatformTransactionManager transactionManager) {
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_SERIALIZABLE);
+    }
+
+    @Around(value = "@annotation(transactionalCustom)")
+    private Object processTransactionalAnnotation(ProceedingJoinPoint pjp, TransactionalPoint transactionalCustom) {
+        boolean readOnly = transactionalCustom.readOnly();
+
+        return process(pjp, transactionTemplate);
+    }
+
+    private Object process(ProceedingJoinPoint pjp, TransactionTemplate transactionTemplate) {
+        return transactionTemplate.execute(txStatus -> {
+            try {
+                return pjp.proceed(pjp.getArgs());
+            } catch (Throwable t) {
+                throw new AopInvocationException(t.getMessage(), t);
+            }
+        });
+    }
+}
+----
