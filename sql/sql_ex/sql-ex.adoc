@@ -1,0 +1,217 @@
+= Сайт для решения задач sql-ex.ru
+
+== Решенные задачи
+
+Решённые: 6, 7, 8, 14, 15, 16, 47, 51, 57
+TIP: Задачи решались при выборе СУБД - PGSQL
+
+=== Задача № 6 +
+[source,roomsql]
+----
+select distinct Product.maker, Laptop.speed
+  from Product, Laptop
+ where Laptop.hd >= 10
+   and Product.model = Laptop.model
+----
+
+=== Задача № 7 +
+[source,roomsql]
+----
+select product.model, pc.price
+  from pc, product
+ where (product.model = pc.model)
+   and product.maker = 'B'
+ union
+select product.model, laptop.price
+  from laptop, product
+ where (product.model = laptop.model)
+   and product.maker = 'B'
+ union
+select product.model, printer.price
+  from printer, product
+where (product.model = printer.model)
+  and product.maker = 'B'
+----
+
+=== Задача № 8 +
+[source,roomsql]
+----
+select maker as Maker
+  from Product p
+  join PC pc on pc.model = p.model
+except
+select maker as Maker
+  from Product p
+  join Laptop lp
+    on lp.model = p.model
+----
+
+=== Задача № 14 +
+[source,roomsql]
+----
+select c.class, s.name, country
+  from Ships s
+  join Classes c
+    on c.class = s.class
+ where numGuns > 9
+----
+
+=== Задача № 15 +
+[source,roomsql]
+----
+select hd
+  from PC
+ group by hd
+having count(*) > 1
+----
+
+=== Задача № 16 +
+[source,roomsql]
+----
+select distinct pc1.model, pc2.model, pc1.speed, pc2.ram
+  from PC pc1, PC pc2
+ where pc1.speed = pc2.speed
+   and pc1.ram = pc2.ram
+   and pc1.model <> pc2.model
+   and pc1.model > pc2.model
+ order by pc1.speed, pc2.ram
+----
+
+=== Задача № 32
+[source,roomsql]
+----
+select country, sum(numGuns) as weight
+from Classes
+group by country
+----
+
+[source,roomsql]
+----
+with t as (
+SELECT Country, cast(round(AVG(Wght), 2) as numeric (32, 2)) Wght
+FROM (SELECT DISTINCT Country, name, ship,
+CASE WHEN (Outcomes.Ship IS NULL AND
+Ships.Class IS NULL)
+THEN NULL
+ELSE POWER(Bore,3)/2
+END Wght
+FROM Outcomes FULL OUTER JOIN
+Ships ON Outcomes.Ship = Ships.Name RIGHT OUTER JOIN
+Classes ON Outcomes.Ship = Classes.Class OR
+Ships.Class = Classes.Class
+) s
+GROUP BY Country
+)
+select Country, cast(Wght as numeric (32, 2)) from t
+----
+
+country weight Germany 1687.50 Gt.Britain 1687.50 Japan 1886.67 USA 1897.78
+
+=== Задача № 47 +
+[source,roomsql]
+----
+with alls as (
+select c.country, s.name
+  from ships s
+  join classes c on s.class = c.class
+ union
+select c.country, o.ship
+  from outcomes o
+  join classes c on c.class = o.ship
+),
+sunkShip as (
+select ship as name
+  from outcomes
+ where result = 'sunk'
+) ,
+shipNotSunk as (
+select country
+  from alls
+ where alls.name not in (select sunkShip.name from sunkShip)
+)
+select distinct country
+  from alls
+where country not in (select sns.country from shipNotSunk sns)
+----
+
+=== Задача № 51 +
+[source,roomsql]
+----
+with alls as (
+select c.country, s.name, c.displacement, c.numGuns
+  from ships s
+  join classes c on s.class = c.class
+ union
+select c.country, o.ship, c.displacement, c.numGuns
+  from outcomes o
+  join classes c on c.class = o.ship
+),
+nameWithGuns as (
+select displacement, max(numGuns) as numGuns
+  from alls
+ group by displacement
+)
+select name
+  from alls a
+  join (select displacement, max(numGuns) as numGuns
+          from alls
+         group by displacement
+       ) as n
+    on a.displacement = n.displacement and a.numGuns = n.numGuns
+----
+
+=== Задача № 57 +
+[source,roomsql]
+----
+with alls as (
+select c.class as class , s.name as name
+  from ships s
+  join classes c on s.class = c.class
+ union
+select c.class as class, o.ship as name
+  from outcomes o
+  join classes c on c.class = o.ship
+),
+sunkShip as (
+select alls.class, count(*) as cnt
+  from alls
+  join outcomes o on o.ship = alls.name
+ where result = 'sunk'
+ group by alls.class
+)
+select distinct alls.class, ss.cnt
+  from alls
+  join sunkShip ss
+    on alls.class = ss.class
+  left join (select class, count(*) as cnt from alls group by class) as sc on sc.class = alls.class
+ where sc.cnt > 2 and ss.cnt is not null
+ order by alls.class
+----
+
+=== Задача № 101
+[source,roomsql]
+----
+select x.*
+      , (select max(c.code) from Printer c where color = 'n' and c.code <= x.code) as low_predel
+      ,(select max(y.model)
+         from Printer y
+        where y.code = (select max(c.code) from Printer c where color = 'n' and c.code <= x.code)
+      ) as max_model
+from Printer x
+
+----
+
+[source,roomsql]
+----
+with ProductsWithLowLimit as (
+select x.*,
+(select max(c.code) as grp from Printer c where color = 'n' and c.code <= x.code) as grp
+from Printer x
+)
+select p.code, p.model, p.color, p.type, p.price
+      ,(select max(x.model) from ProductsWithLowLimit x where x.grp = p.grp) as max_model
+      ,(select count(distinct(x.type)) from ProductsWithLowLimit x where x.grp = p.grp) as distct_types
+      ,(select avg(x.price) from ProductsWithLowLimit x where x.grp = p.grp) as avg_price
+from ProductsWithLowLimit p
+order by p.grp, p.price
+----
