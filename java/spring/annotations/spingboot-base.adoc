@@ -1,0 +1,19 @@
+= Аннотации
+== Аннотация @SpringBootApplication
+
+Аннотация @SpringBootApplication - Это составная аннотация, которую устанавливают на "Main" классе. Она включает в себя следующие аннотации:
+
+* @SpringBootConfiguration
+* @EnableAutoConfiguration
+* @ComponentScan
+
+== Аннотация @SpringBootConfiguration
+Аннотация @SpringBootConfiguration - определяет класс, как класс конфигурации. Специализированная форма аннотации @Configuration
+
+== Аннотация @EnableAutoConfiguration
+Аннотация @EnableAutoConfiguration - включает автоконфигурацию Spring Boot. Сообщает Spring, о необходимости автоматически настраивать любые компоненты, которые могут понадобиться.
+
+== Аннотация @ComponentScan
+Аннотация @ComponentScan - включает сканирование компонентов, что позволяет  использовать на др. классах аннотации @Component, @Controller, @Service,
+чтобы Spring автоматически обнаруживал и регистрировал классы, как компоненты в контексте приложения Spring.
+

@@ -1,0 +1,119 @@
+= Примеры по использованию JOOQ
+
+== Пример create
+[source,java]
+----
+class Example {
+    public POJO create(POJO pojo) {
+        log.debug("Create {} record: {}", getEntityName(), pojo);
+
+        setId(pojo, nextIdBigInt());
+        try {
+            context.newRecord(getTable(), pojo).store();
+        } catch (DuplicateKeyException dke) {
+            log.error(ExceptionUtils.getRootCauseMessage(dke), dke);
+            throw new IllegalArgumentException(
+                    format(DUPLICATE_KEY_EXCEPTION, "nmeUnq", getNmeUnq(pojo), pojo),
+                    dke
+            );
+        }
+        return pojo;
+    }
+}
+----
+
+== Пример update
+[source,java]
+----
+class Example {
+    public POJO update(POJO pojo, Set<String> updatedFields) throws NothingToChangeException {
+        log.debug("Update {} record: {}", getEntityName(), pojo);
+
+        Record originalRecord = getRecord(getNmeUnq(pojo));
+        if (originalRecord == null)
+            throw new NotFoundException(format(UNABLE_TO_LOAD_ONE_UNQ, getEntityName(), "nmeUnq", getNmeUnq(pojo)));
+
+        RECORD newRecord = context.newRecord(getTable(), pojo);
+        if (!JooqHelper.setChangedForUpdatedFieldsOnly(newRecord, originalRecord, updatedFields, getEntityName())) {
+            throw new NothingToChangeException();
+        }
+
+        int count = context
+                .update(getTable())
+                .set(newRecord)
+                .where(getNmeUnqField().equalIgnoreCase(getNmeUnq(pojo)))
+                .execute();
+
+        if (count != 1)
+            throw new UpdateException(String.format(UNABLE_TO_UPDATE, pojo, getNmeUnq(pojo)));
+
+        return getByNmeUnq(getNmeUnq(pojo));
+    }
+}
+----
+
+== Пример delete
+[source,java]
+----
+class Example {
+    public void delete(BigInteger id) {
+        log.debug("Delete {} record with id {}", getEntityName(), id);
+
+        int count;
+        try {
+            count = context
+                    .delete(getTable())
+                    .where(getIdField().eq(id))
+                    .execute();
+        } catch (Exception exception) {
+            Throwable rootCause = ExceptionUtils.getRootCause(exception);
+            if (rootCause instanceof SQLException) {
+                // SQL errors
+                throw new DeleteException("SQL Error, see logs for details"); //NOPMD
+            } else {
+                // All another errors
+                throw exception;
+            }
+        }
+        if (count <= 0) {
+            throw new NotFoundException(format(UNABLE_TO_LOAD_ONE_UNQ, getEntityName(), "id", id));
+        } else if (count > 1) {
+            throw new DeleteException(format(MANY_ROWS_WERE_AFFECTED_DELETE, count, "id", id));
+        }
+    }
+}
+----
+
+== Получение списка find()
+[source,java]
+----
+class Example {
+    public List<POJO> find() {
+        log.debug("Get all {} records", getEntityName());
+
+        return context
+                .select()
+                .from(getTable())
+                .fetch()
+                .into(pojoClass);
+    }
+}
+----
+
+== Получение одного элемента getByNmeUnq()
+[source,java]
+----
+class Example {
+    private POJO getByNmeUnq(String nmeUnq) {
+        log.debug("Get {} record by unique name: {}", getEntityName(), nmeUnq);
+
+        return context
+                .select()
+                .from(getTable())
+                .where(getNmeUnqField().equalIgnoreCase(nmeUnq))
+                .fetchOne()
+                .map(it -> it.into(pojoClass))
+                .orElseThrow(() -> new NotFoundException("..."));
+    }
+}
+----
