@@ -2,7 +2,7 @@
 
 == Решенные задачи
 
-Решённые: 6, 7, 8, 14, 15, 16, 47, 51, 57
+Решённые: 6, 7, 8, 14, 15, 16, 17, 47, 51, 57
 TIP: Задачи решались при выборе СУБД - PGSQL
 
 === Задача № 6 +
@@ -75,6 +75,16 @@ select distinct pc1.model, pc2.model, pc1.speed, pc2.ram
    and pc1.model <> pc2.model
    and pc1.model > pc2.model
  order by pc1.speed, pc2.ram
+----
+
+=== Задача № 17 +
+[source,roomsql]
+----
+select distinct p.type, l.model, l.speed
+  from Laptop l
+  join Product p
+    on p.model = l.model
+ where l.speed < (select min(pc.speed) from PC pc)
 ----
 
 === Задача № 32
